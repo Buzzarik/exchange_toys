@@ -4,6 +4,8 @@ const (
 	KToyNotFound = "Toy not found"
 	KInvalidArgument = "Invalid argument"
 	KInvalidCursor = "Invalid cursor"
+	KErrorSaveFile = "File is not save"
+	KCreateToyError = "Invalid create toy"
 )
 
 type ResponseError struct { // может быть в общий компонент перенести потому что встроенный как-то не о чем

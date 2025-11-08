@@ -2,7 +2,7 @@ package service
 
 import (
 	"service/internal/config"
-	// "service/internal/models"
+	"service/internal/models"
 	// "encoding/json"
 	// "errors"
 	// "fmt"
@@ -20,7 +20,9 @@ type Storage interface {
 	// SelectUserByEmail(email string) (*models.User, error)
 	// SelectUserById(user_id string) (*models.User, error)
 
-	// SelectToyById(toy_id string) (*models.Toy, error)
+	InsertToy(newToy *models.Toy) (*models.Toy, error)
+	SelectToyById(toyId string, userId string) (*models.Toy, error)
+	SelectToyByToken(token string) (*models.Toy, error)
 	// SelectToysExcludeUserIds(exclude_user_ids []string, status []string, cursor *string, limit int64) ([]*models.Toy, *string, error)
 	// SelectToysUserIds(
 	// 	user_ids []string,
@@ -28,7 +30,6 @@ type Storage interface {
 	// 	cursor *string, 
 	// 	limit int64,
 	// ) ([]*models.Toy, *string, error)
-	// InsertToy(toy *models.Toy) (*models.Toy, error)
 	// UpdateToy(toy *models.Toy) (*models.Toy, error)
 	// UpdateStatusToy(
 	// 	toy_id string, 

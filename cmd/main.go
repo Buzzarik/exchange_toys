@@ -4,6 +4,7 @@ import (
 	"service/internal/config"
 	"service/internal/service/handlers"
 	"service/internal/service"
+	"service/internal/storage/postgres"
 
 	"fmt"
 	"log/slog"
@@ -34,10 +35,15 @@ func main() {
 
 	// считываем с конфига
 	cnf := config.New();
+	storage, err := postgres.New(&cnf.Postgres)
+	if err != nil {
+		panic(err.Error())
+	}
 
 	application := &service.Application{
 		Cnf: cnf,
 		Log: slog.New(slog.NewJSONHandler(os.Stdout, nil)),
+		Storage: storage,
 		Validator: validator.New(),
 	}
 
@@ -54,10 +60,10 @@ func main() {
 	{
 		toysV1Group.Post("/", handlers.CreateToy(application))
 		toysV1Group.Put("/", handlers.UpdateToy(application))
+		toysV1Group.Post("/list", handlers.GetToysList(application))
 		toysV1Group.Patch("/:toy_id", handlers.UpdateStatusToy(application))
 		toysV1Group.Delete("/:toy_id", handlers.DeleteToy(application))
 		toysV1Group.Get("/:toy_id", handlers.GetToy(application))
-		toysV1Group.Post("/list", handlers.GetToysList(application))
 	}
 
 	// exchangeV1Group := app.Group("/v1/exchange")

@@ -3,7 +3,7 @@ env: "local"
 postgres:
   driver:            "postgres"
   host:              "localhost"
-  port:              5050
+  port:              5432
   username:          "evgeniy"
   password:          "1065"
   sslmode:           "disable"
@@ -11,9 +11,11 @@ postgres:
   max_open_conns:    25
   max_idle_conns:    25
   max_idle_time:     1m
+  timeout:           5s
 
 server:
   host:             "localhost"
   port:             3000
   timeout:          5s
   prefix_upload:    "./uploads"
+  photo_url:        "http://localhost:3000/upload"

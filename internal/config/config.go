@@ -25,6 +25,7 @@ type ConfigPostgres struct {
 	MaxOpenConns 	int    			`yaml:"max_open_conns"`
 	MaxIdleConns 	int    			`yaml:"max_idle_conns"`
 	MaxIdleTime  	time.Duration 	`yaml:"max_idle_time"`
+	Timeout 		time.Duration	`yaml:"timeout"`
 };
 
 type ConfigServer struct {
@@ -32,6 +33,7 @@ type ConfigServer struct {
 	Port 			int 			`yaml:"port"`
 	Timeout 		time.Duration  	`yaml:"timeout"`
 	Prefix_upload	string			`yaml:"prefix_upload"`
+	PhotoUrl		string			`yaml:"photo_url"`
 };
 
 func New() *Config {
