@@ -61,7 +61,7 @@ func main() {
 		toysV1Group.Post("/", handlers.CreateToy(application))
 		toysV1Group.Put("/", handlers.UpdateToy(application))
 		toysV1Group.Post("/list", handlers.GetToysList(application))
-		toysV1Group.Patch("/:toy_id", handlers.UpdateStatusToy(application))
+		toysV1Group.Patch("/:toy_id", handlers.UpdateToyStatus(application))
 		toysV1Group.Delete("/:toy_id", handlers.DeleteToy(application))
 		toysV1Group.Get("/:toy_id", handlers.GetToy(application))
 	}

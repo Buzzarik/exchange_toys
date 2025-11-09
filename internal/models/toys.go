@@ -5,6 +5,14 @@ import (
 	"time"
 )
 
+type ToyStatus string
+
+const (
+	KCreated ToyStatus = "created"
+	KRemoved ToyStatus = "removed"
+	KChanging ToyStatus = "exchanging"
+)
+
 type Toy struct {
 	ToyId 		string 		`json:"toy_id"`
 	UserId 		string 		`json:"user_id"`
@@ -12,7 +20,7 @@ type Toy struct {
 	IdempotencyToken string `json:"idempotency_token" validate:"required,min=1"`
 	Description *string 	`json:"description,omitempty" validate:"omitempty"`
 	PhotoUrl 	*string 	`json:"photo_url,omitempty" validate:"omitempty"`
-	Status 		string 		`json:"status"`
+	Status 		ToyStatus 	`json:"status"`
 	CreatedAt 	time.Time  	`json:"created_at"`
 	UpdatedAt 	time.Time  	`json:"updated_at"`
 }
@@ -62,6 +70,10 @@ type RequestToyPut struct {
 	File *multipart.FileHeader	   `json:"file,omitempty" validate:"omitempty"`
 }
 
+func (req *RequestToyPut) GetFile() *multipart.FileHeader {
+	return req.File
+}
+
 type RequestToyPostBody struct {
 	Name 		string 		`json:"name" validate:"min=1"`
 	Description *string 	`json:"description,omitempty" validate:"omitempty"`
@@ -74,12 +86,20 @@ type RequestToyPost struct {
 	File *multipart.FileHeader	   `json:"file,omitempty" validate:"omitempty"`
 }
 
+func (req *RequestToyPost) GetFile() *multipart.FileHeader {
+	return req.File
+}
+
 // Response 
 type ReponseToyGet struct {
 	Toy Toy `json:"toy" validate:"required"`
 }
 
 type ReponseToyPost struct {
+	Toy Toy `json:"toy" validate:"required"`
+}
+
+type ReponseToyPatch struct {
 	Toy Toy `json:"toy" validate:"required"`
 }
 

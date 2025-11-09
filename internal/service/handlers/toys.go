@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"service/internal/parsers"
 	"service/internal/models"
+	"service/internal/parsers"
 	"service/internal/service"
 	"service/internal/utils"
 
@@ -10,55 +10,25 @@ import (
 	"log/slog"
 	"strings"
 	"time"
+	"mime/multipart"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
 
-const (
-	kCreated = "created"
-)
-
-// Тестовые данные
-var kPhotoUrl string = "/100days.png"
-var kDescripton string = "hello"
-
-var iToken string
-
-var toys = map[string]*models.Toy {
-		"toy_id_1": &models.Toy{
-			ToyId: 			"toy_id_1",
-			UserId: 		"user_id_1",
-			Name:			"toy_1",
-			IdempotencyToken: "token_1",
-			Description: 	&kDescripton,
-			PhotoUrl:		&kPhotoUrl,
-			Status: 		"created",
-			CreatedAt: 		time.Now(),
-			UpdatedAt: 		time.Now(),
-		},
-		"toy_id_2": &models.Toy{
-			ToyId: 			"toy_id_2",
-			UserId: 		"user_id_2",
-			Name:			"toy_2",
-			IdempotencyToken: "token_2",
-			Description: 	nil,
-			PhotoUrl:		nil,
-			Status: 		"exchanging",
-			CreatedAt: 		time.Now(),
-			UpdatedAt: 		time.Now(),
-		},
+type RequestFile interface {
+	GetFile() *multipart.FileHeader
 }
 
-func saveFile(req *models.RequestToyPost, app *service.Application, context *fiber.Ctx) (*string, error) {
-	if req.File == nil {
+func saveFile[T RequestFile](req T, app *service.Application, context *fiber.Ctx) (*string, error) {
+	if req.GetFile() == nil {
 		return nil, nil
 	}
 
 	filename := fmt.Sprintf(
 		"%s_%s",
 		uuid.New().String(), 
-		strings.ReplaceAll(req.File.Filename, " ", "_"),
+		strings.ReplaceAll(req.GetFile().Filename, " ", "_"),
 	)
 
 	path := fmt.Sprintf(
@@ -73,7 +43,7 @@ func saveFile(req *models.RequestToyPost, app *service.Application, context *fib
 		filename,
 	)
 
-	if err := context.SaveFile(req.File, path); err != nil {
+	if err := context.SaveFile(req.GetFile(), path); err != nil {
 		return nil, err
 	}
 
@@ -82,7 +52,6 @@ func saveFile(req *models.RequestToyPost, app *service.Application, context *fib
 	return &photo_url, nil
 }
 
-//TODO: доделать взаимодействие с БД + проверка на idempotency Update Returning + фотка
 func CreateToy(app *service.Application) fiber.Handler {
 	return func(context *fiber.Ctx) error {
 		var req models.RequestToyPost
@@ -91,21 +60,17 @@ func CreateToy(app *service.Application) fiber.Handler {
 			return context.Status(fiber.StatusBadRequest).JSON(
 				models.ResponseError{
 					Code: models.KInvalidArgument,
-					Message: err.Error(),
-				},
-			)
+					Message: err.Error()})
 		}
 
 		app.Log.Info("Start POST v1/toys", slog.Any("request", req))
 
 		dbToy, err := app.Storage.SelectToyByToken(req.IdempotencyToken)
 		if err != nil {
-			return context.Status(fiber.StatusBadRequest).JSON(
+			return context.Status(fiber.StatusInternalServerError).JSON(
 				models.ResponseError{
-					Code: models.KCreateToyError,
-					Message: err.Error(),
-				},
-			)
+					Code: models.KInvalidCreateToy,
+					Message: err.Error()})
 		}
 
 		if dbToy != nil {
@@ -113,25 +78,23 @@ func CreateToy(app *service.Application) fiber.Handler {
 				JSON(models.ReponseToyPost{Toy: *dbToy})
 		}
 		
-		new_id := uuid.New().String()
-		photo_url, err := saveFile(&req, app, context)
+		newId := uuid.New().String()
+		photoUrl, err := saveFile(&req, app, context)
 		if err != nil {
 			return context.Status(fiber.StatusBadRequest).JSON(
 				models.ResponseError{
 					Code: models.KErrorSaveFile,
-					Message: err.Error(),
-				},
-			)
+					Message: err.Error()})
 		}
 
 		toy := models.Toy{
-			ToyId: new_id,
+			ToyId: newId,
 			Name: req.Toy.Name,
 			IdempotencyToken: req.IdempotencyToken,
 			Description: req.Toy.Description,
-			PhotoUrl: photo_url,
+			PhotoUrl: photoUrl,
 			UserId: req.UserId,
-			Status: kCreated,
+			Status: models.KCreated,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		}
@@ -140,21 +103,15 @@ func CreateToy(app *service.Application) fiber.Handler {
 		if err != nil {
 			return context.Status(fiber.StatusBadRequest).JSON(
 				models.ResponseError{
-					Code: models.KCreateToyError,
-					Message: err.Error(),
-			})
+					Code: models.KInvalidCreateToy,
+					Message: err.Error()})
 		}
-
-		// for _, toy := range toys {
-		// 	app.Log.Info("", slog.Any("toy", toy))
-		// }
 
 		return context.Status(fiber.StatusCreated).
 				JSON(models.ReponseToyPost{Toy: *dbToy})
 	}
 }
 
-//TODO: доделать взаимодействие с БД + фотка
 func UpdateToy(app *service.Application) fiber.Handler {
 	return func(context *fiber.Ctx) error {
 		var req models.RequestToyPut
@@ -163,30 +120,46 @@ func UpdateToy(app *service.Application) fiber.Handler {
 			return context.Status(fiber.StatusBadRequest).JSON(
 				models.ResponseError{
 					Code: models.KInvalidArgument,
-					Message: err.Error(),
-				},
-			)
+					Message: err.Error()})
 		}
 
 		app.Log.Info("Start PUT v1/toys", slog.Any("request", req))
-
-		if toy, ok := toys[req.Toy.ToyId]; ok {
-			toy.Name = req.Toy.Name
-			toy.Description = req.Toy.Description
-
-			return context.Status(fiber.StatusOK).JSON(
-				models.ReponseToyPut{
-					Toy: *toy,
-				},
-			)
+		
+		photoUrl, err := saveFile(&req, app, context)
+		if err != nil {
+			return context.Status(fiber.StatusBadRequest).JSON(
+				models.ResponseError{
+					Code: models.KErrorSaveFile,
+					Message: err.Error()})
 		}
 
-		return context.Status(fiber.StatusNotFound).JSON(
-			models.ResponseError{
-				Code: models.KToyNotFound,
-				Message: "Toy is not exist",
-			},
-		)
+		toy := models.Toy{
+			ToyId: req.Toy.ToyId,
+			UserId: req.UserId,
+			Description: req.Toy.Description,
+			Name: req.Toy.Name,
+		}
+		if photoUrl != nil {
+			toy.PhotoUrl = photoUrl
+		}
+
+		dbToy, err := app.Storage.UpdateToy(&toy)
+		if err != nil {
+			return context.Status(fiber.StatusInternalServerError).JSON(
+				models.ResponseError{
+					Code: models.KInvalidUpdateToy,
+					Message: err.Error()})
+		}
+
+		if dbToy == nil {
+			return context.Status(fiber.StatusNotFound).JSON(
+				models.ResponseError{
+					Code: models.KToyNotFound,
+					Message: "Toy is not exist"})
+		}
+
+		return context.Status(fiber.StatusOK).
+				JSON(models.ReponseToyPut{Toy: *dbToy})
 	}
 }
 
@@ -199,9 +172,7 @@ func GetToysList(app *service.Application) fiber.Handler {
 			return context.Status(fiber.StatusBadRequest).JSON(
 				models.ResponseError{
 					Code: models.KInvalidArgument,
-					Message: err.Error(),
-				},
-			)
+					Message: err.Error()})
 		}
 
 		cursor, err := utils.Decode(req.Body.Cursor)
@@ -209,28 +180,31 @@ func GetToysList(app *service.Application) fiber.Handler {
 			return context.Status(fiber.StatusBadRequest).JSON(
 				models.ResponseError{
 					Code: models.KInvalidCursor,
-					Message: err.Error(),
-				},
-			)
+					Message: err.Error()})
 		}
 
-		app.Log.Info("Start POST v1/toys/list", slog.Any("request", req))
+		app.Log.Info("Start POST v1/toys/list", slog.Any("request", req), slog.Any("dd", req.Body.Query.Statuses))
 
-		// тест
-		var resp models.ResponseToysList
-		resp.Toys = make([]models.Toy, 0, len(toys)) // cap 
-		for _, toy := range(toys) {
-			resp.Toys = append(resp.Toys, *toy)
+		dbToys, cursor, err := app.Storage.SelectToysList(&req.Body.Query, cursor, *req.Body.Limit)
+		if err != nil {
+			return context.Status(fiber.StatusInternalServerError).JSON(
+				models.ResponseError{
+					Code: models.KInvalidToysList,
+					Message: err.Error()})
 		}
-		resp.Cursor = cursor
 
-		return context.Status(fiber.StatusOK).JSON(resp)
+		if cursor != nil {
+			cursor = utils.Encode(cursor)
+		}
 
+		return context.Status(fiber.StatusOK).JSON(
+			models.ResponseToysList{
+				Toys: dbToys,
+				Cursor: cursor})
 	}
 }
 
-//TODO: доделать взаимодействие с БД + как надо фейлить сделки по этой игрушке, если будет статус created
-func UpdateStatusToy(app *service.Application) fiber.Handler {
+func UpdateToyStatus(app *service.Application) fiber.Handler {
 	return func(context *fiber.Ctx) error {
 		var req models.RequestToyPatch
 
@@ -245,12 +219,26 @@ func UpdateStatusToy(app *service.Application) fiber.Handler {
 
 		app.Log.Info("Start PATCH v1/toys", slog.Any("request", req))
 
-		if toy, ok := toys[req.ToyId]; ok {
-			toy.Status = req.Body.Status
+		dbToy, err := app.Storage.UpdateToyStatus(req.ToyId, req.UserId, models.ToyStatus(req.Body.Status))
+
+		if err != nil {
+			return context.Status(fiber.StatusInternalServerError).JSON(
+				models.ResponseError{
+					Code: models.KInvalidUpdateToyStatus,
+					Message: err.Error(),
+				},
+			)
 		}
 
-		return context.SendStatus(fiber.StatusOK)
+		if dbToy == nil {
+			return context.Status(fiber.StatusNotFound).JSON(
+				models.ResponseError{
+					Code: models.KToyNotFound,
+					Message: "Error change status toy"})
+		}
 
+		return context.Status(fiber.StatusOK).
+			JSON(models.ReponseToyPatch{Toy: *dbToy})
 	}
 }
 
@@ -263,23 +251,20 @@ func DeleteToy(app *service.Application) fiber.Handler {
 			return context.Status(fiber.StatusBadRequest).JSON(
 				models.ResponseError{
 					Code: models.KInvalidArgument,
-					Message: err.Error(),
-				},
-			)
+					Message: err.Error()})
 		}
 
 		app.Log.Info("Start DELETE v1/toys", slog.Any("request", req))
 
-		if toy, ok := toys[req.ToyId]; ok {
-			toy.Status = "removed"	
-		}
+		// if toy, ok := toys[req.ToyId]; ok {
+		// 	toy.Status = "removed"	
+		// }
 
 		return context.SendStatus(fiber.StatusOK)
 
 	}
 }
 
-//TODO: доделать взаимодействие с БД
 func GetToy(app *service.Application) fiber.Handler {
 	return func(context *fiber.Ctx) error {
 		var req models.RequestToyGet
@@ -294,17 +279,12 @@ func GetToy(app *service.Application) fiber.Handler {
 		}
 
 		app.Log.Info("Start GET v1/toys", slog.Any("request", req))
-
-		// for _, toy := range toys {
-		// 	app.Log.Info("", slog.Any("toy", toy))
-		// }
-
 		toy, err := app.Storage.SelectToyById(req.ToyId, req.UserId)
 
 		if err != nil {
-			return context.Status(fiber.StatusBadRequest).JSON( // 400 - заменить
+			return context.Status(fiber.StatusInternalServerError).JSON(
 				models.ResponseError{
-					Code: models.KToyNotFound,
+					Code: models.KInvalidGetToy,
 					Message: err.Error(),
 				},
 			)
@@ -314,9 +294,7 @@ func GetToy(app *service.Application) fiber.Handler {
 			return context.Status(fiber.StatusNotFound).JSON(
 				models.ResponseError{
 					Code: models.KToyNotFound,
-					Message: err.Error(),
-				},
-			)
+					Message: "toy not found"})
 		}
 
 		return context.Status(fiber.StatusOK).JSON(

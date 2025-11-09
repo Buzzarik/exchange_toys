@@ -23,19 +23,9 @@ type Storage interface {
 	InsertToy(newToy *models.Toy) (*models.Toy, error)
 	SelectToyById(toyId string, userId string) (*models.Toy, error)
 	SelectToyByToken(token string) (*models.Toy, error)
-	// SelectToysExcludeUserIds(exclude_user_ids []string, status []string, cursor *string, limit int64) ([]*models.Toy, *string, error)
-	// SelectToysUserIds(
-	// 	user_ids []string,
-	// 	status []string, 
-	// 	cursor *string, 
-	// 	limit int64,
-	// ) ([]*models.Toy, *string, error)
-	// UpdateToy(toy *models.Toy) (*models.Toy, error)
-	// UpdateStatusToy(
-	// 	toy_id string, 
-	// 	user_id string,
-	// 	status string,
-	// ) (error)
+	UpdateToyStatus(toyId string, userId string, status models.ToyStatus) (*models.Toy, error)
+	UpdateToy(newToy *models.Toy) (*models.Toy, error)
+	SelectToysList(query *models.QueryToys, cursor *string, limit int64) ([]models.Toy, *string, error)
 	// DeleteToy(
 	// 	toy_id string, 
 	// 	user_id string,
