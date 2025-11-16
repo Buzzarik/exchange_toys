@@ -8,9 +8,9 @@ import (
 type ToyStatus string
 
 const (
-	KCreated ToyStatus = "created"
-	KRemoved ToyStatus = "removed"
-	KChanging ToyStatus = "exchanging"
+	KCreatedToyStatus ToyStatus = "created"
+	KRemovedToyStatus ToyStatus = "removed"
+	KExchangingToyStatus ToyStatus = "exchanging"
 )
 
 type Toy struct {
@@ -23,6 +23,14 @@ type Toy struct {
 	Status 		ToyStatus 	`json:"status"`
 	CreatedAt 	time.Time  	`json:"created_at"`
 	UpdatedAt 	time.Time  	`json:"updated_at"`
+}
+
+type ToyInfo struct {
+	ToyId 		string 		`json:"toy_id"`
+	UserId 		string 		`json:"user_id"`
+	Name 		string 		`json:"name"`
+	Description *string 	`json:"description,omitempty" validate:"omitempty"`
+	PhotoUrl 	*string 	`json:"photo_url,omitempty" validate:"omitempty"`
 }
 
 
@@ -108,6 +116,6 @@ type ResponseToysList struct {
 	Cursor *string `json:"cursor,omitempty" validate:"omitempty,min=1"`
 }
 
-type ReponseToyPut struct {
+type ResponseToyPut struct {
 	Toy Toy `json:"toy" validate:"required"`
 }

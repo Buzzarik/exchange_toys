@@ -2,18 +2,19 @@ package main
 
 import (
 	"service/internal/config"
-	"service/internal/service/handlers"
 	"service/internal/service"
+	"service/internal/service/handlers"
+	"service/internal/service/middlewares"
 	"service/internal/storage/postgres"
 
 	"fmt"
 	"log/slog"
 	"os"
 
-    "github.com/gofiber/fiber/v2"
+	"github.com/go-playground/validator/v10"
+	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/go-playground/validator/v10"
 )
 
 type Response struct{
@@ -49,14 +50,14 @@ func main() {
 
 	// настройка middleware
 	app.Use(logger.New(logger.Config{
-		Format: "[${time}] ${ip}:${port} ${method} ${path} ${status} ${reqHeader:User-Agent}\n",
+		Format: "${blue}[${time}]${reset} ${cyan}${ip}:${port}${reset} ${method} ${green}${path}${reset} ${status} ${magenta}${latency}${reset} ${white}${reqHeader:User-Agent}${reset}\n",
 	}))
 	app.Use(recover.New())
-	//TODO: добавить проверку пользователя
 
 	app.Static("/upload", cnf.Server.Prefix_upload)
 
 	toysV1Group := app.Group("/v1/toys");
+	toysV1Group.Use(middlewares.AuthMiddleware(application))
 	{
 		toysV1Group.Post("/", handlers.CreateToy(application))
 		toysV1Group.Put("/", handlers.UpdateToy(application))
@@ -66,49 +67,21 @@ func main() {
 		toysV1Group.Get("/:toy_id", handlers.GetToy(application))
 	}
 
-	// exchangeV1Group := app.Group("/v1/exchange")
-	// {
-	// 	exchangeV1Group.Get("/:exchange_id", )
-	// 	exchangeV1Group.Patch("/:exchange_id", )
-	// 	exchangeV1Group.Post("/list", )
-	// }
+	exchangeV1Group := app.Group("/v1/exchange")
+	exchangeV1Group.Use(middlewares.AuthMiddleware(application))
+	{
+		exchangeV1Group.Post("/", handlers.CreateExchange(application))
+		exchangeV1Group.Get("/:exchange_id", handlers.GetExchange(application))
+		exchangeV1Group.Patch("/:exchange_id", handlers.PatchExchange(application))
+		exchangeV1Group.Post("/list", handlers.GetExchangeList(application))
+	}
 
-	// shopV1Group := app.Group("/v1/shop")
-	// {
-	// 	shopV1Group.Get("/:toy_id", )
-	// 	shopV1Group.Post("/", )
-	// 	shopV1Group.Post("/list", )
-	// }
-
-	// {
-	// 	app.Post("/v1/register/form", )
-	// 	app.Post("v1/login/form", )
-	// }
-
-
-    // Определяем обработчик для корневого маршрута
-    // app.Get("/", func(c *fiber.Ctx) error {
-	// 	var req Request
-		
-	// 	req.User = c.Query("user", "unknown")
-
-	// 	respBody := &Response{
-	// 		User: req.User,
-	// 		Message: "Пользователь получен",
-	// 	}
-
-	// 	c.SaveFile() // сразу сохраняет
-
-	// 	// c.FormFile("key") // содержимое файла
-	// 	// c.FormValue("key") // содержимое полей
-
-    //     return c.Status(fiber.StatusOK).JSON(respBody) 
-    // })
+	{
+		app.Post("/v1/register", handlers.Register((application)))
+		app.Post("v1/login", handlers.Login(application))
+	}
 
     // Запускаем сервер на порту 3000
-    app.Listen(
-		fmt.Sprintf("%s:%d", cnf.Server.Host, cnf.Server.Port), 
-		//":3000"
-	)
+    app.Listen(fmt.Sprintf("%s:%d", cnf.Server.Host, cnf.Server.Port))
 
 }

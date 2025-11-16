@@ -16,6 +16,7 @@ const(
 	kName = "name"
 	kStatus = "status"
 	kXIdempotencyToken = "x_idempotency_token"
+	kExchangeId = "exchange_id"
 	kLimit int64 = 40
 )
 

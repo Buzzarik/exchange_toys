@@ -78,7 +78,6 @@ func CreateToy(app *service.Application) fiber.Handler {
 				JSON(models.ReponseToyPost{Toy: *dbToy})
 		}
 		
-		newId := uuid.New().String()
 		photoUrl, err := saveFile(&req, app, context)
 		if err != nil {
 			return context.Status(fiber.StatusBadRequest).JSON(
@@ -88,13 +87,12 @@ func CreateToy(app *service.Application) fiber.Handler {
 		}
 
 		toy := models.Toy{
-			ToyId: newId,
 			Name: req.Toy.Name,
 			IdempotencyToken: req.IdempotencyToken,
 			Description: req.Toy.Description,
 			PhotoUrl: photoUrl,
 			UserId: req.UserId,
-			Status: models.KCreated,
+			Status: models.KCreatedToyStatus,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		}
@@ -159,11 +157,10 @@ func UpdateToy(app *service.Application) fiber.Handler {
 		}
 
 		return context.Status(fiber.StatusOK).
-				JSON(models.ReponseToyPut{Toy: *dbToy})
+				JSON(models.ResponseToyPut{Toy: *dbToy})
 	}
 }
 
-//TODO: доделать взаимодействие с БД
 func GetToysList(app *service.Application) fiber.Handler {
 	return func(context *fiber.Ctx) error {
 		var req models.RequestToysList
@@ -183,7 +180,7 @@ func GetToysList(app *service.Application) fiber.Handler {
 					Message: err.Error()})
 		}
 
-		app.Log.Info("Start POST v1/toys/list", slog.Any("request", req), slog.Any("dd", req.Body.Query.Statuses))
+		app.Log.Info("Start POST v1/toys/list", slog.Any("request", req))
 
 		dbToys, cursor, err := app.Storage.SelectToysList(&req.Body.Query, cursor, *req.Body.Limit)
 		if err != nil {
@@ -242,7 +239,6 @@ func UpdateToyStatus(app *service.Application) fiber.Handler {
 	}
 }
 
-//TODO: доделать взаимодействие с БД + как надо фейлить сделки по этой игрушке
 func DeleteToy(app *service.Application) fiber.Handler {
 	return func(context *fiber.Ctx) error {
 		var req models.RequestToyDelete
@@ -256,9 +252,16 @@ func DeleteToy(app *service.Application) fiber.Handler {
 
 		app.Log.Info("Start DELETE v1/toys", slog.Any("request", req))
 
-		// if toy, ok := toys[req.ToyId]; ok {
-		// 	toy.Status = "removed"	
-		// }
+		_, err := app.Storage.UpdateToyStatus(req.ToyId, req.UserId, models.KRemovedToyStatus)
+
+		if err != nil {
+			return context.Status(fiber.StatusInternalServerError).JSON(
+				models.ResponseError{
+					Code: models.KInvalidUpdateToyStatus,
+					Message: err.Error(),
+				},
+			)
+		}
 
 		return context.SendStatus(fiber.StatusOK)
 
@@ -279,7 +282,7 @@ func GetToy(app *service.Application) fiber.Handler {
 		}
 
 		app.Log.Info("Start GET v1/toys", slog.Any("request", req))
-		toy, err := app.Storage.SelectToyById(req.ToyId, req.UserId)
+		toy, err := app.Storage.SelectToyById(req.ToyId)
 
 		if err != nil {
 			return context.Status(fiber.StatusInternalServerError).JSON(
