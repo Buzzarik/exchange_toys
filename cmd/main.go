@@ -26,15 +26,10 @@ type Request struct{
 	User string `json:"user"`
 }
 
-const uploadDir = "./uploads" // Директория, где хранятся загруженные файлы (тогда в конфиг)
-
-
 //NOTE: CONFIG_PATH=./config/local_config.yaml go run ./cmd/main.go
 func main() {
-    // Создаем новый экземпляр Fiber
     app := fiber.New()
 
-	// считываем с конфига
 	cnf := config.New();
 	storage, err := postgres.New(&cnf.Postgres)
 	if err != nil {
@@ -48,7 +43,6 @@ func main() {
 		Validator: validator.New(),
 	}
 
-	// настройка middleware
 	app.Use(logger.New(logger.Config{
 		Format: "${blue}[${time}]${reset} ${cyan}${ip}:${port}${reset} ${method} ${green}${path}${reset} ${status} ${magenta}${latency}${reset} ${white}${reqHeader:User-Agent}${reset}\n",
 	}))
@@ -81,7 +75,6 @@ func main() {
 		app.Post("v1/login", handlers.Login(application))
 	}
 
-    // Запускаем сервер на порту 3000
     app.Listen(fmt.Sprintf("%s:%d", cnf.Server.Host, cnf.Server.Port))
 
 }

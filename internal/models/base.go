@@ -22,7 +22,7 @@ const (
 	KExistUser = "User is exist"
 )
 
-type ResponseError struct { // может быть в общий компонент перенести потому что встроенный как-то не о чем
+type ResponseError struct {
 	Code string `json:"code" validate:"required"`
 	Message string `json:"message" validate:"required"`
 }

@@ -267,6 +267,7 @@ const (
         WHERE e.exchange_id = ANY($1);
 	`
 
+// USER
 	kInsertUser = 
 	`    
 		INSERT INTO users 

@@ -11,9 +11,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-//TODO: v1/register/form POST создание пользователя
-
-//TODO: v2/login/form POST заход на аккаунт
 func Register(app *service.Application) fiber.Handler {
 	return func(context *fiber.Ctx) error {
 		var req models.RequestRegister
