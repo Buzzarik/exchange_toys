@@ -14,8 +14,8 @@ postgres:
   timeout:           5s
 
 server:
-  host:             "localhost"
-  port:             3000
+  host:             "0.0.0.0"
+  port:             5001
   timeout:          5s
   prefix_upload:    "./uploads"
-  photo_url:        "http://localhost:3000/upload"
+  photo_url:        "http://0.0.0.0:5001/upload"

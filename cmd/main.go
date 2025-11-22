@@ -54,7 +54,7 @@ func main() {
 	toysV1Group.Use(middlewares.AuthMiddleware(application))
 	{
 		toysV1Group.Post("/", handlers.CreateToy(application))
-		toysV1Group.Put("/", handlers.UpdateToy(application))
+		toysV1Group.Post("/change", handlers.UpdateToy(application)) // по сути PUT
 		toysV1Group.Post("/list", handlers.GetToysList(application))
 		toysV1Group.Patch("/:toy_id", handlers.UpdateToyStatus(application))
 		toysV1Group.Delete("/:toy_id", handlers.DeleteToy(application))
