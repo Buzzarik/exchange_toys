@@ -5,6 +5,7 @@ import (
 	"service/internal/parsers"
 	"service/internal/service"
 	"service/internal/utils"
+	"service/internal/service/clients"
 
 	"log/slog"
 
@@ -202,7 +203,11 @@ func PatchExchange(app *service.Application) fiber.Handler {
 			UpdatedAt: dbExchange[0].ExchangeUpdatedAt,
 		}
 
-		//TODO: if exchange.Status == confirm -> sendMails
+		if exchange.Status == models.KConfirmExchangeStatus {
+			go clients.SendEmailToSingleParticipant(app, exchange.Details[0].Toy.UserId, exchange.Details[1].Toy.UserId)
+			go clients.SendEmailToSingleParticipant(app, exchange.Details[1].Toy.UserId, exchange.Details[0].Toy.UserId)
+		}
+		// по логике надо тут транзакцию закрывать, когда будет уверенность, то корутины запущены
 
 		return context.Status(fiber.StatusOK).JSON(
 			models.ResponseExchangePatch{

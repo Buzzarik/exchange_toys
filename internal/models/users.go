@@ -1,6 +1,7 @@
 package models
 
 import (
+	"strings"
 	"time"
 )
 
@@ -11,6 +12,16 @@ type User struct {
 	Email string `json:"email" validate:"required,email"`
 	CreatedAt 	time.Time  	`json:"created_at"`
 	UpdatedAt 	time.Time  	`json:"updated_at"`
+}
+
+func (u *User) FullName() string {
+    parts := []string{u.UserName.LastName, u.UserName.FirstName}
+    
+    if u.UserName.MiddleName != nil {
+        parts = append(parts, *u.UserName.MiddleName)
+    }
+    
+    return strings.Join(parts, " ")
 }
 
 type UserName struct {

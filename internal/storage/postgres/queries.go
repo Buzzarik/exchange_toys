@@ -33,7 +33,7 @@ const (
 		FROM toys
 		WHERE true
 			AND toy_id = $1
-			AND status != 'removed'
+			AND status NOT IN ('removed', 'exchanged')
 		;
 	`
 
@@ -53,7 +53,7 @@ const (
 		WHERE true
 			AND toy_id = $1
 			AND user_id = $2
-			AND status != 'removed'
+			AND status NOT IN ('removed', 'exchanged')
 		;
 	`
 
@@ -223,7 +223,8 @@ const (
 	`
 		UPDATE exchange_details
 		SET 
-			status = $3
+			status = $3,
+			updated_at = NOW()
 		WHERE true
 			AND user_id = $2
 			AND exchange_id = $1;
