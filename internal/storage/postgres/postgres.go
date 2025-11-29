@@ -732,7 +732,6 @@ func (s *Postgres) SelectExchangeList(query *models.QueryExchanges, userId strin
 
 	participants := make([]models.ExchangeParticipant, 0)
 	for rows2.Next() {
-		fmt.Println("fffff")
 		p, err := getExchangeParticipant(rows2)
 		if err != nil {
 			return nil, nil, fmt.Errorf("%s, %w", op, err)
@@ -740,8 +739,6 @@ func (s *Postgres) SelectExchangeList(query *models.QueryExchanges, userId strin
 
 		participants = append(participants, *p)
 	}
-
-	fmt.Println(participants)
 
 	return participants, nextCursor, nil
 }
