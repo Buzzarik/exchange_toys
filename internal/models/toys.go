@@ -11,6 +11,7 @@ const (
 	KCreatedToyStatus ToyStatus = "created"
 	KRemovedToyStatus ToyStatus = "removed"
 	KExchangingToyStatus ToyStatus = "exchanging"
+	KExchangedToyStatus ToyStatus = "exchanged"
 )
 
 type Toy struct {
